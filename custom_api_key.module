@@ -1,0 +1,95 @@
+<?php
+/**
+ * @file
+ * Modules main file, using core drupal hooks  the existing Drupal "Site Information" form.
+ * 
+ * @author : Mohan Gathala
+ */
+
+/**
+ * Implements HOOK_form_alter
+ */
+function custom_api_key_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id == 'system_site_information_settings') {
+    //adds a textfield in the form
+  $form['custm_apikey'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Site API Key'),
+      '#default_value' => (variable_get('siteapikey')) ? variable_get('siteapikey') : t('No API Key yet'),
+    );
+    $form['#submit'][] = 'custom_api_key_submit';
+    $form['actions']['submit']['#value'] = t('Update Configuration');
+      }
+}
+/**
+ * Execute that submit function
+ */
+function custom_api_key_submit($form, &$form_state) {
+  if (!empty( $form_state['values']['custm_apikey'] )) {
+    variable_set('siteapikey', $form_state['values']['custm_apikey']);
+    drupal_set_message(t('The Site API Key has been saved with %cus_key', array('%cus_key' => $form_state['values']['custm_apikey'])));
+  }
+  else{
+    variable_set('siteapikey', 'No API Key yet');
+  }
+}
+
+/**
+ * Implements HOOK_menu
+ */
+function custom_api_key_menu() {
+$items = array();
+//adds tab in the node view pages to redirect to its json representaution link
+ $items['node/%node/json'] = array(
+    'title' => 'JSON',
+    'page callback' => 'custom_api_key_send_json_page',
+    'page arguments' => array(1),
+    'access callback' => 'custom_api_key_content_type_check',
+    'access arguments' => array(1),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 100,
+  );
+//menu item to show json representation for a node
+  $items['page_json/%/%'] = array(
+  'title' => 'JSON representation of a given node',
+  'page callback' => 'custom_api_key_json_representation',
+    'access callback' => TRUE,
+    'page arguments' => array(1, 2),
+  );
+  return $items;
+}
+/**
+ * Redirect on the JSON tab 
+ */
+function custom_api_key_send_json_page($node) {
+  $site_api = variable_get('siteapikey');
+  $nid_node = $node->nid;
+  $path = $_GET['q'];
+  $pathtest = explode("/", $path); 
+  $url = "page_json/" . $site_api . "/" . $pathtest[1];
+  drupal_goto($url);
+}
+
+/**
+* Access callback
+*/
+function custom_api_key_content_type_check($node) {
+  return ($node->type == 'page') ? TRUE : FALSE;
+}
+
+
+/**
+ * Callback for json representation for a node
+ * @param : site api key (added on settings page)
+ * @param : node id
+ */
+function custom_api_key_json_representation($custom_api_key, $nid) {
+  $node = node_load($nid);
+  if($node && variable_get('siteapikey') && $custom_api_key == variable_get('siteapikey') && $node->type == 'page' ) {
+    drupal_json_output( $node );
+  }
+  else {
+    drupal_access_denied();
+    drupal_exit();
+  }  
+}

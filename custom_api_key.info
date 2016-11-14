@@ -1,0 +1,13 @@
+name = Custom API key
+description = This module is use for alter the existing Drupal "Site Information" form.
+core = 7.x
+package = Custom
+
+
+files[] = custom_api_key.module
+
+version = "7.x-1.0"
+core = "7.x"
+project = "custom_api_key"
+
+
